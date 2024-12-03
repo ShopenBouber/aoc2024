@@ -34,16 +34,16 @@ import (
 //     1 3 6 7 9: Safe without removing any level.
 // Thanks to the Problem Dampener, 4 reports are actually safe!
 
-var safeRows int = 0
 var extraLife bool = true
 var easyTry bool = false
+var safeRows int = 0
 
 func main() {
 
 	var input [][]int = ReadFile("input.txt")
 	safeRows = countSafe(input)
 	fmt.Print("Number Of Safe Rows: ", safeRows)
-	fmt.Println("----------end of part 1--------")
+	fmt.Println("-----------------------------")
 }
 
 func ReadFile(fileName string) [][]int {
@@ -84,7 +84,7 @@ func countSafe(inputList [][]int) int {
 
 		extraLife = true
 		easyTry = false
-		isBlockSafe := checkNums(block)
+		isBlockSafe := checkNumsBlock(block)
 
 		fmt.Println("Block is", isBlockSafe)
 		if isBlockSafe {
@@ -94,82 +94,99 @@ func countSafe(inputList [][]int) int {
 	return safeRows
 }
 
-func checkNums(numsBlock []int) bool {
+func checkNumsBlock(numsBlock []int) bool {
 	var rowCheck bool = true
+
+	for i := 0; i < len(numsBlock)-1; i++ {
+		checkNumsDiff(i, numsBlock, numsBlock[i], numsBlock[i+1], rowCheck, extraLife, easyTry)
+
+	}
+	return rowCheck
+}
+
+func checkNumsDiff(i int, numsBlock []int, currNum, nextNum int, rowCheck, extraLife, easyTry bool) (bool, bool, bool) {
 	var rowDecrease bool = false
 	var rowIncrease bool = false
 	var numsDiff int
 
-	for i := 0; i < len(numsBlock)-1; i++ {
+	numsDiff = nextNum - currNum
+	fmt.Println("diff is", numsDiff)
 
-		if easyTry {
-			if i+2 >= len(numsBlock) {
-				rowCheck = false
-				break
-			}
-			numsDiff = numsBlock[i+2] - numsBlock[i]
-			easyTry = false
-			i += 1
-		} else {
-			numsDiff = numsBlock[i+1] - numsBlock[i]
+	fmt.Println("debug extralife", extraLife)
+	fmt.Println("debug easyTry", easyTry)
+
+	if easyTry {
+		if i+2 >= len(numsBlock) {
+			rowCheck = false
+			// return rowCheck, extraLife, easyTry
 		}
+		easyTry = false
+	}
 
-		fmt.Println("diff is", numsDiff)
+	if numsDiff > 3 || numsDiff < -3 {
+		if !extraLife {
+			rowCheck = false
+			// return rowCheck, extraLife, easyTry
+		} else {
+			extraLife = false
+			easyTry = true
+			fmt.Println("extraLife lost delta trop gros", extraLife)
+			// reloop here
+			fmt.Println("debug exta loop 1")
+			checkNumsDiff(i, numsBlock, numsBlock[i], numsBlock[i+2], rowCheck, extraLife, easyTry)
+			// return rowCheck, extraLife, easyTry
+		}
+	}
 
-		if numsDiff > 3 || numsDiff < -3 {
+	if numsDiff > 0 && numsDiff <= 3 {
+		if rowDecrease {
 			if !extraLife {
 				rowCheck = false
-				break
+				// return rowCheck, extraLife, easyTry
 			} else {
 				extraLife = false
 				easyTry = true
-				i -= 1
-				fmt.Println("extraLife lost delta trop gros", extraLife)
+				fmt.Println("extraLife lost row decrease puis increase", extraLife)
+				// reloop here
+				fmt.Println("debug exta loop 2")
+				checkNumsDiff(i, numsBlock, numsBlock[i], numsBlock[i+2], rowCheck, extraLife, easyTry)
+				// return rowCheck, extraLife, easyTry
 			}
 		}
+		rowIncrease = true
+	}
 
-		if numsDiff > 0 && numsDiff <= 3 {
-			if rowDecrease {
-				if !extraLife {
-					rowCheck = false
-					break
-				} else {
-					extraLife = false
-					easyTry = true
-					i -= 1
-					fmt.Println("extraLife lost delta trop gros", extraLife)
-					break
-				}
-			}
-			rowIncrease = true
-		}
-
-		if numsDiff < 0 && numsDiff >= -3 {
-			if rowIncrease {
-				if !extraLife {
-					rowCheck = false
-					break
-				} else {
-					extraLife = false
-					easyTry = true
-					i -= 1
-					fmt.Println("extraLife lost delta trop gros", extraLife)
-					break
-				}
-			}
-			rowDecrease = true
-		}
-
-		if numsDiff == 0 {
+	if numsDiff < 0 && numsDiff >= -3 {
+		if rowIncrease {
 			if !extraLife {
 				rowCheck = false
-				break
+				// return rowCheck, extraLife, easyTry
 			} else {
 				extraLife = false
-				fmt.Println("extraLife lost", extraLife)
-				break
+				easyTry = true
+				fmt.Println("extraLife lost row increase puis decrease", extraLife)
+				// reloop here
+				fmt.Println("debug exta loop 3")
+				checkNumsDiff(i, numsBlock, numsBlock[i], numsBlock[i+2], rowCheck, extraLife, easyTry)
+				// return rowCheck, extraLife, easyTry
 			}
 		}
+		rowDecrease = true
 	}
-	return rowCheck
+
+	if numsDiff == 0 {
+		if !extraLife {
+			rowCheck = false
+			return rowCheck, extraLife, easyTry
+		} else {
+			extraLife = false
+			easyTry = true
+			fmt.Println("extraLife lost, diff is 0", extraLife)
+			// reloop here
+			fmt.Println("debug exta loop 4")
+			checkNumsDiff(i, numsBlock, numsBlock[i], numsBlock[i+2], rowCheck, extraLife, easyTry)
+			// return rowCheck, extraLife, easyTry
+		}
+	}
+	return rowCheck, extraLife, easyTry
 }
